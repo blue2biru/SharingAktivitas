@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHARINGATIVITAS TV</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f0f; color: #fff; margin: 0; padding: 20px; }
+  h2 { text-align: center; color: #ffc107; font-size: 28px; margin-bottom: 5px; }
+  h2 span { color: #ff0000; }
+  .sub { text-align: center; color: #aaa; margin-bottom: 30px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; max-width: 1300px; margin: 20px auto; }
+  .card { background: #1a1a1a; border-radius: 12px; overflow: hidden; cursor: pointer; transition: 0.2s; border: 1px solid #333; }
+  .card:hover { transform: translateY(-5px); border-color: #ffc107; box-shadow: 0 5px 15px #ffc10733; }
+  .thumb { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 60px; color: #ff0000; text-shadow: 0 0 10px #000; opacity: 0.9; transition: 0.2s; }
+  .card:hover .play-btn { opacity: 1; transform: translate(-50%,-50%) scale(1.1); }
+  .info { padding: 14px; }
+  .title { font-size: 15px; font-weight: bold; height: 40px; overflow: hidden; line-height: 1.3; }
+  .date { font-size: 12px; color: #aaa; margin-top: 6px; }
+  .loader { text-align: center; padding: 80px 20px; font-size: 18px; color: #ffc107; }
+  iframe { width: 100%; height: 100%; border: none; }
+</style>
+</head>
+<body>
+
+<h2><span>SHARINGAKTIVITAS</span> MANTAP TV v2</h2>
+<p class="sub">Load Cepat + API Anti Limit</p>
+<div id="status" class="loader">⏳ Memuat video terbaru...</div>
+<div class="grid" id="videoGrid"></div>
+
+<script>
+// CHANNEL ID SERABI NGEBUL MANTAP
+const CHANNEL_ID = "UCsWGjFilQTLEVE7gW1CvbEA";
+
+// API CADANGAN ANTI ERROR: Failed to fetch
+const APIS = [
+  "https://api.codetabs.com/v1/proxy?quest=", // Utama
+  "https://api.allorigins.win/get?url="       // Cadangan
+];
+
+async function loadVideos() {
+  document.getElementById('videoGrid').innerHTML = '';
+  document.getElementById('status').innerText = '⏳ Memuat video terbaru...';
+
+  let videos = [];
+  let lastError = "";
+  
+  // LOOP 2 API SAMPAI ADA YANG BERHASIL
+  for(let api of APIS){
+    try{
+      const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
+      const apiUrl = `${api}${encodeURIComponent(rssUrl)}`;
+      const res = await fetch(apiUrl, {mode: 'cors'});
+      
+      // codetabs dan allorigins beda format balasan
+      let xmlString = api.includes('allorigins') ? (await res.json()).contents : await res.text();
+      
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlString, "application/xml");
+      const entries = xml.querySelectorAll("entry");
+      
+      if(entries.length === 0) throw new Error("Kosong");
+      
+      entries.forEach(entry => {
+        videos.push({
+          title: entry.querySelector("title").textContent,
+          link: entry.querySelector("link").getAttribute("href"),
+          pubDate: entry.querySelector("published").textContent
+        });
+      });
+      break; // kalo berhasil langsung keluar dari loop
+      
+    }catch(e){ 
+      lastError = e.message; 
+      console.log("API Gagal:", api, e) // buat cek di console
+    }
+  }
+  
+  if(videos.length > 0){
+    document.getElementById('status').style.display = 'none';
+    renderVideos(videos);
+  } else {
+    document.getElementById('status').innerText = '❌ Gagal load video. Coba refresh atau ganti internet. Error: ' + lastError;
+  }
+}
+
+function renderVideos(videos) {
+  const grid = document.getElementById('videoGrid');
+  
+  videos.forEach(video => {
+    const videoId = video.link.split('v=')[1].split('&')[0];
+    const thumbUrl = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`; 
+    const date = new Date(video.pubDate).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="thumb" onclick="playVideo(this, '${videoId}')">
+        <img src="${thumbUrl}" loading="lazy"> 
+        <div class="play-btn">▶️</div>
+      </div>
+      <div class="info">
+        <div class="title">${video.title}</div>
+        <div class="date">Upload: ${date}</div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// TRIK LOAD CEPAT: Baru load iframe pas di klik
+function playVideo(element, videoId) {
+  element.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+}
+
+// AUTO LOAD PAS BUKA HALAMAN
+loadVideos();
+</script>
+</body>
+</html>
