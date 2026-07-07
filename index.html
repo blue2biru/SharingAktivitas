@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SHARINGATIVITAS TV</title>
+<title>SHARINGAKTIVITAS MANTAP TV</title>
 <style>
   body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f0f; color: #fff; margin: 0; padding: 20px; }
   h2 { text-align: center; color: #ffc107; font-size: 28px; margin-bottom: 5px; }
@@ -25,72 +25,50 @@
 </head>
 <body>
 
-<h2><span>SHARINGAKTIVITAS</span> MANTAP TV v2</h2>
-<p class="sub">Load Cepat + API Anti Limit</p>
+<h2><span>SERABI NGEBUL</span> MANTAP TV</h2>
+<p class="sub">Video Terbaru Langsung dari YouTube</p>
 <div id="status" class="loader">⏳ Memuat video terbaru...</div>
 <div class="grid" id="videoGrid"></div>
 
 <script>
-// CHANNEL ID SERABI NGEBUL MANTAP
 const CHANNEL_ID = "UCsWGjFilQTLEVE7gW1CvbEA";
-
-// API CADANGAN ANTI ERROR: Failed to fetch
-const APIS = [
-  "https://api.codetabs.com/v1/proxy?quest=", // Utama
-  "https://api.allorigins.win/get?url="       // Cadangan
-];
 
 async function loadVideos() {
   document.getElementById('videoGrid').innerHTML = '';
   document.getElementById('status').innerText = '⏳ Memuat video terbaru...';
 
-  let videos = [];
-  let lastError = "";
-  
-  // LOOP 2 API SAMPAI ADA YANG BERHASIL
-  for(let api of APIS){
-    try{
-      const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
-      const apiUrl = `${api}${encodeURIComponent(rssUrl)}`;
-      const res = await fetch(apiUrl, {mode: 'cors'});
-      
-      // codetabs dan allorigins beda format balasan
-      let xmlString = api.includes('allorigins') ? (await res.json()).contents : await res.text();
-      
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(xmlString, "application/xml");
-      const entries = xml.querySelectorAll("entry");
-      
-      if(entries.length === 0) throw new Error("Kosong");
-      
-      entries.forEach(entry => {
-        videos.push({
-          title: entry.querySelector("title").textContent,
-          link: entry.querySelector("link").getAttribute("href"),
-          pubDate: entry.querySelector("published").textContent
-        });
-      });
-      break; // kalo berhasil langsung keluar dari loop
-      
-    }catch(e){ 
-      lastError = e.message; 
-      console.log("API Gagal:", api, e) // buat cek di console
-    }
-  }
-  
-  if(videos.length > 0){
+  try {
+    // LANGKAH 1: AMBIL PLAYLIST ID "Uploads" dari Channel
+    const res1 = await fetch(`https://yt.lemnoslife.com/channels?part=contentDetails&id=${CHANNEL_ID}`);
+    if(!res1.ok) throw new Error("Gagal ambil data channel");
+    const data1 = await res1.json();
+    const playlistId = data1.items[0].contentDetails.relatedPlaylists.uploads;
+
+    // LANGKAH 2: AMBIL 24 VIDEO TERBARU DARI PLAYLIST
+    const res2 = await fetch(`https://yt.lemnoslife.com/playlists?part=items&id=${playlistId}&maxResults=24`);
+    if(!res2.ok) throw new Error("Gagal ambil data video");
+    const data2 = await res2.json();
+    
+    const videos = data2.items.map(item => ({
+      title: item.snippet.title,
+      link: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
+      pubDate: item.snippet.publishedAt
+    }));
+
     document.getElementById('status').style.display = 'none';
     renderVideos(videos);
-  } else {
-    document.getElementById('status').innerText = '❌ Gagal load video. Coba refresh atau ganti internet. Error: ' + lastError;
+
+  } catch(e) {
+    document.getElementById('status').innerText = '❌ Gagal load video. Refresh halaman. Error: ' + e.message;
+    console.error(e)
   }
 }
 
 function renderVideos(videos) {
   const grid = document.getElementById('videoGrid');
-  
+  grid.innerHTML = "";
   videos.forEach(video => {
-    const videoId = video.link.split('v=')[1].split('&')[0];
+    const videoId = video.link.split('v=')[1];
     const thumbUrl = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`; 
     const date = new Date(video.pubDate).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
 
@@ -110,12 +88,10 @@ function renderVideos(videos) {
   });
 }
 
-// TRIK LOAD CEPAT: Baru load iframe pas di klik
 function playVideo(element, videoId) {
   element.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
 }
 
-// AUTO LOAD PAS BUKA HALAMAN
 loadVideos();
 </script>
 </body>
