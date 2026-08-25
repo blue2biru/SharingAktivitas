@@ -56,27 +56,106 @@ async function loadVideos() {
       pubDate: item.snippet.publishedAt
     }));
 
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">  
+<title>SHARINGAKTIVITAS MANTAP TV</title>
+<meta name="google-site-verification" content="GD_tWdwLW5wknCgGQ5XJncvC8MADhm2G-a9r2hbsAhY" />  
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f0f; color: #fff; margin: 0; padding: 20px; }
+  h2 { text-align: center; color: #ffc107; font-size: 28px; margin-bottom: 5px; }
+  h2 span { color: #ff0000; }
+  .sub { text-align: center; color: #aaa; margin-bottom: 30px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; max-width: 1300px; margin: 20px auto; }
+  .card { background: #1a1a1a; border-radius: 12px; overflow: hidden; cursor: pointer; transition: 0.2s; border: 1px solid #333; }
+  .card:hover { transform: translateY(-5px); border-color: #ffc107; box-shadow: 0 5px 15px #ffc10733; }
+  .thumb { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 60px; color: #ff0000; text-shadow: 0 0 10px #000; opacity: 0.9; transition: 0.2s; }
+  .card:hover .play-btn { opacity: 1; transform: translate(-50%,-50%) scale(1.1); }
+  .info { padding: 14px; }
+  .title { font-size: 15px; font-weight: bold; height: 40px; overflow: hidden; line-height: 1.3; }
+  .date { font-size: 12px; color: #aaa; margin-top: 6px; }
+  .loader { text-align: center; padding: 80px 20px; font-size: 18px; color: #ffc107; }
+  iframe { width: 100%; height: 100%; border: none; }
+</style>
+</head>
+<body>
+
+<h2><span>SHARINGAKTIVITAS</span> MANTAP TV</h2>
+<p class="sub">Video Terbaru Langsung dari YouTube</p>
+<div id="status" class="loader">⏳ Memuat video terbaru...</div>
+<div class="grid" id="videoGrid"></div>
+
+<script>
+const CHANNEL_ID = "UCsWGjFilQTLEVE7gW1CvbEA";
+
+async function loadVideos() {
+  document.getElementById('videoGrid').innerHTML = '';
+  document.getElementById('status').innerText = '⏳ Memuat video terbaru...';
+  document.getElementById('status').style.display = 'block';
+
+  try {
+    // Menggunakan RSS asli YouTube dibungkus AllOrigins Proxy agar bypass CORS error
+    const rssUrl = `https://youtube.com{CHANNEL_ID}`;
+    const proxyUrl = `https://allorigins.win{encodeURIComponent(rssUrl)}`;
+    
+    const res = await fetch(proxyUrl);
+    if(!res.ok) throw new Error("Gagal mengambil data dari server proxy");
+    
+    const data = await res.json();
+    
+    // Parsing string XML menjadi objek dokumen DOM agar mudah dibaca JavaScript
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+    const entries = xmlDoc.getElementsByTagName("entry");
+
+    if (entries.length === 0) {
+      throw new Error("Video tidak ditemukan atau format RSS berubah");
+    }
+
+    const videos = [];
+    // Batasi pengambilan maksimal 24 video terbaru
+    const maxResults = Math.min(entries.length, 24);
+
+    for (let i = 0; i < maxResults; i++) {
+      const entry = entries[i];
+      const title = entry.getElementsByTagName("title")[0]?.textContent || "Video Tanpa Judul";
+      const videoId = entry.getElementsByTagName("yt:videoId")[0]?.textContent;
+      const pubDate = entry.getElementsByTagName("published")[0]?.textContent;
+
+      if (videoId) {
+        videos.push({
+          title: title,
+          id: videoId,
+          pubDate: pubDate
+        });
+      }
+    }
+
     document.getElementById('status').style.display = 'none';
     renderVideos(videos);
 
   } catch(e) {
-    document.getElementById('status').innerText = '❌ Gagal load video. Refresh halaman. Error: ' + e.message;
-    console.error(e)
+    document.getElementById('status').innerText = '❌ Gagal load video. Hubungi developer atau refresh. Error: ' + e.message;
+    console.error(e);
   }
 }
 
 function renderVideos(videos) {
   const grid = document.getElementById('videoGrid');
   grid.innerHTML = "";
+  
   videos.forEach(video => {
-    const videoId = video.link.split('v=')[1];
-    const thumbUrl = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`; 
+    const thumbUrl = `https://i.ytimg.com/vi/${video.id}/mqdefault.jpg`; 
     const date = new Date(video.pubDate).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
 
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
-      <div class="thumb" onclick="playVideo(this, '${videoId}')">
+      <div class="thumb" onclick="playVideo(this, '${video.id}')">
         <img src="${thumbUrl}" loading="lazy"> 
         <div class="play-btn">▶️</div>
       </div>
@@ -93,6 +172,7 @@ function playVideo(element, videoId) {
   element.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
 }
 
+// Jalankan fungsi otomatis saat halaman terbuka
 loadVideos();
 </script>
 </body>
