@@ -35,53 +35,51 @@
 const CHANNEL_ID = "UCsWGjFilQTLEVE7gW1CvbEA";
 
 async function loadVideos() {
-  document.getElementById('videoGrid').innerHTML = '';
-  document.getElementById('status').innerText = '⏳ Memuat video terbaru...';
-  document.getElementById('status').style.display = 'block';
+  const grid = document.getElementById('videoGrid');
+  const status = document.getElementById('status');
+  
+  grid.innerHTML = '';
+  status.innerText = '⏳ Memuat video terbaru...';
+  status.style.display = 'block';
 
   try {
-    // Menggunakan RSS asli YouTube dibungkus AllOrigins Proxy agar bypass CORS error
+    // Memakai RSS resmi YouTube dikonversi ke JSON via rss2json (Cepat & ada Auto-Cache)
     const rssUrl = `https://youtube.com{CHANNEL_ID}`;
-    const proxyUrl = `https://allorigins.win{encodeURIComponent(rssUrl)}`;
-    
-    const res = await fetch(proxyUrl);
-    if(!res.ok) throw new Error("Gagal mengambil data dari server proxy");
+    const apiUrl = `https://rss2json.com{encodeURIComponent(rssUrl)}`;
+
+    const res = await fetch(apiUrl);
+    if (!res.ok) throw new Error("Gagal mengambil data dari server");
     
     const data = await res.json();
     
-    // Parsing string XML menjadi objek dokumen DOM agar mudah dibaca JavaScript
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-    const entries = xmlDoc.getElementsByTagName("entry");
-
-    if (entries.length === 0) {
-      throw new Error("Video tidak ditemukan atau format RSS berubah");
+    if (data.status !== 'ok' || !data.items || data.items.length === 0) {
+      throw new Error("Video tidak ditemukan atau API sedang limit");
     }
 
     const videos = [];
-    // Batasi pengambilan maksimal 24 video terbaru
-    const maxResults = Math.min(entries.length, 24);
-
-    for (let i = 0; i < maxResults; i++) {
-      const entry = entries[i];
-      const title = entry.getElementsByTagName("title")[0]?.textContent || "Video Tanpa Judul";
-      const videoId = entry.getElementsByTagName("yt:videoId")[0]?.textContent;
-      const pubDate = entry.getElementsByTagName("published")[0]?.textContent;
+    data.items.forEach(item => {
+      // Ekstrak ID Video dengan aman dari link YouTube bawaan RSS
+      let videoId = "";
+      if (item.link.includes("v=")) {
+        videoId = item.link.split("v=")[1].split("&")[0];
+      } else if (item.link.includes("shorts/")) {
+        videoId = item.link.split("shorts/")[1].split("?")[0];
+      }
 
       if (videoId) {
         videos.push({
-          title: title,
+          title: item.title,
           id: videoId,
-          pubDate: pubDate
+          pubDate: item.pubDate
         });
       }
-    }
+    });
 
-    document.getElementById('status').style.display = 'none';
+    status.style.display = 'none';
     renderVideos(videos);
 
   } catch(e) {
-    document.getElementById('status').innerText = '❌ Gagal load video. Hubungi developer atau refresh. Error: ' + e.message;
+    status.innerText = '❌ Gagal load video. Silakan refresh halaman. Error: ' + e.message;
     console.error(e);
   }
 }
@@ -91,7 +89,7 @@ function renderVideos(videos) {
   grid.innerHTML = "";
   
   videos.forEach(video => {
-    const thumbUrl = `https://i.ytimg.com/vi/${video.id}/mqdefault.jpg`; 
+    const thumbUrl = `https://ytimg.com{video.id}/mqdefault.jpg`; 
     const date = new Date(video.pubDate).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
 
     const card = document.createElement('div');
@@ -111,10 +109,10 @@ function renderVideos(videos) {
 }
 
 function playVideo(element, videoId) {
-  element.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+  element.innerHTML = `<iframe src="https://youtube.com{videoId}?autoplay=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
 }
 
-// Jalankan fungsi otomatis saat halaman terbuka
+// Jalankan fungsi secara otomatis saat halaman dibuka
 loadVideos();
 </script>
 </body>
