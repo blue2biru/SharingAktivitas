@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://bluetubiru.github.io/SharingAktivitas/sitemap.xml
